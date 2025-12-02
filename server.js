@@ -27,17 +27,22 @@ app.post("/tranzila", async (req, res) => {
         createdAt: new Date()
       });
 
-    console.log("Transaction saved:", data);
+    console.log("✔ Transaction saved:", data);
 
     res.status(200).send("OK");
   } catch (err) {
-    console.error("Webhook error:", err);
+    console.error("❌ Webhook error:", err);
     res.status(500).send("ERROR");
   }
 });
 
+// Root for testing
 app.get("/", (req, res) => {
-  res.send("Tranzila webhook running");
+  res.send("Tranzila Webhook Running");
 });
 
-export default app;
+// 🔥 MUST HAVE FOR CLOUD RUN
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log("🔥 Server listening on port " + PORT);
+});
