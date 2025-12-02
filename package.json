@@ -1,7 +1,6 @@
 {
   "name": "tranzila-webhook",
   "version": "1.0.0",
-  "description": "Webhook handler for Tranzila payments → Firestore",
   "main": "server.js",
   "type": "module",
   "scripts": {
