@@ -6,61 +6,67 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// כתובת ה-Webhook של Base44/Make
-const BASE_WEBHOOK_URL = "https://hooks.make.com/XXXXXXXXXXXXXX"; // נשנה לכתובת שלך
+// ---------------------------
+// BASE44 WEBHOOK DESTINATION
+// ---------------------------
+const BASE44_URL =
+  "https://brandy-melville-to-israel-e6ff628d.base44.app/api/apps/6890f5d7bddca551e6ff628d/functions/tranzilaNotify";
 
-// ברירת מחדל – בדיקת חיים
+const BASE44_API_KEY = "62a994200e544bb4ab7844d477353552";
+
+// ---------------------------
+// HEALTH CHECK
+// ---------------------------
 app.get("/", (req, res) => {
   res.send("Tranzila Webhook Running");
 });
 
-// נקודת קבלת ה-NotifyURL מטרנזילה
+// ---------------------------
+// MAIN WEBHOOK FROM TRANZILA
+// ---------------------------
 app.post("/", async (req, res) => {
   try {
     const data = req.body;
-    console.log("Received Tranzila POST:", data);
+    console.log("📩 Received from Tranzila:", data);
 
-    // תרגום קוד תגובה
-    const success = data.Response === "000";
+    // טרנזילה מחזירה Response=000 כאשר התשלום אושר
+    const approved = data.Response === "000";
 
-    // יצירת אובייקט נוח להעברה לבייס
+    // Payload שנשלח לבייס44
     const payload = {
-      status: success ? "approved" : "declined",
-      response_code: data.Response,
-      response_text: data.ResponseText,
-      confirm_num: data.ConfirmNum || null,
-      amount: data.Amount || null,
-      order_id: data.OrderID || null,
-
-      // פרטי לקוח
-      customer_name: data.CustomerName || null,
-      phone: data.Phone || null,
-      email: data.Email || null,
-
-      // כל מה שטרנזילה שלחה
+      status: approved ? "approved" : "declined",
+      amount: data.Amount,
+      order_id: data.OrderID,
+      confirm_num: data.ConfirmNum,
+      card_mask: data.CCNumber,
+      customer_name: data.CustomerName,
+      email: data.Email,
+      phone: data.Phone,
       raw: data
     };
 
-    // שליחה ל-Base/Make
-    await fetch(BASE_WEBHOOK_URL, {
+    console.log("➡ Sending to Base44:", payload);
+
+    await fetch(BASE44_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "api_key": BASE44_API_KEY
+      },
       body: JSON.stringify(payload)
     });
 
-    console.log("Forwarded to Base44 successfully");
-
-    // חשוב מאוד: החזרת OK לטרנזילה
     res.status(200).send("OK");
-
   } catch (err) {
-    console.error("Error processing Tranzila webhook:", err);
+    console.error("❌ Error in webhook:", err);
     res.status(500).send("ERROR");
   }
 });
 
-// הפעלת השרת
-const port = process.env.PORT || 8080;
-app.listen(port, () => {
-  console.log("Server running on port", port);
+// ---------------------------
+// CLOUD RUN PORT
+// ---------------------------
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log("🚀 Server listening on port " + PORT);
 });
